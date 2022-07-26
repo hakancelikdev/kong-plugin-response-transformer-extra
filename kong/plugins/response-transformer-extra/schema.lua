@@ -1,42 +1,98 @@
 local typedefs = require "kong.db.schema.typedefs"
+local validate_header_name = require("kong.tools.utils").validate_header_name
 
 
-local PLUGIN_NAME = "response-transformer-extra"
+local function validate_headers(pair, validate_value)
+  local name, value = pair:match("^([^:]+):*(.-)$")
+  if validate_header_name(name) == nil then
+    return nil, string.format("'%s' is not a valid header", tostring(name))
+  end
+
+  if validate_value then
+    if validate_header_name(value) == nil then
+      return nil, string.format("'%s' is not a valid header", tostring(value))
+    end
+  end
+  return true
+end
 
 
-local schema = {
-  name = PLUGIN_NAME,
+local function validate_colon_headers(pair)
+  return validate_headers(pair, true)
+end
+
+local string_array = {
+  type = "array",
+  default = {},
+  required = true,
+  elements = { type = "string" },
+}
+
+
+local colon_string_array = {
+  type = "array",
+  default = {},
+  required = true,
+  elements = { type = "string", match = "^[^:]+:.*$" },
+}
+
+
+local string_record = {
+  type = "record",
   fields = {
-    -- the 'fields' array is the top-level entry with fields defined by Kong
-    { consumer = typedefs.no_consumer },  -- this plugin cannot be configured on a consumer (typical for auth plugins)
+    { json = string_array },
+    { headers = string_array },
+  },
+}
+
+
+local colon_string_record = {
+  type = "record",
+  fields = {
+    { json = colon_string_array },
+    { json_types = {
+      type = "array",
+      default = {},
+      required = true,
+      elements = {
+        type = "string",
+        one_of = { "boolean", "number", "string" }
+      }
+    } },
+    { headers = colon_string_array },
+  },
+}
+
+local colon_headers_array = {
+  type = "array",
+  default = {},
+  required = true,
+  elements = { type = "string", match = "^[^:]+:.*$", custom_validator = validate_colon_headers },
+}
+
+
+local colon_rename_strings_array_record = {
+  type = "record",
+  fields = {
+    { headers = colon_headers_array }
+  },
+}
+
+
+return {
+  name = "response-transformer-extra",
+  fields = {
     { protocols = typedefs.protocols_http },
     { config = {
-        -- The 'config' record is the custom part of the plugin schema
         type = "record",
         fields = {
-          -- a standard defined field (typedef), with some customizations
-          { request_header = typedefs.header_name {
-              required = true,
-              default = "Hello-World" } },
-          { response_header = typedefs.header_name {
-              required = true,
-              default = "Bye-World" } },
-          { ttl = { -- self defined field
-              type = "integer",
-              default = 600,
-              required = true,
-              gt = 0, }}, -- adding a constraint for the value
-        },
-        entity_checks = {
-          -- add some validation rules across fields
-          -- the following is silly because it is always true, since they are both required
-          { at_least_one_of = { "request_header", "response_header" }, },
-          -- We specify that both header-names cannot be the same
-          { distinct = { "request_header", "response_header"} },
+          { remove = string_record },
+          { rename  = colon_rename_strings_array_record },
+          { replace = colon_string_record },
+          { add = colon_string_record },
+          { append = colon_string_record },
         },
       },
     },
   },
 }
-
-return schema
