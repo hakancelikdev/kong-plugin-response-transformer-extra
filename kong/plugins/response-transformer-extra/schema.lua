@@ -1,7 +1,7 @@
 local typedefs = require "kong.db.schema.typedefs"
 
 
-local PLUGIN_NAME = "myplugin"
+local PLUGIN_NAME = "response-transformer-extra"
 
 
 local schema = {

@@ -11,3 +11,9 @@ luacov.stats.out
 luacov.report.out
 # exclude Pongo containerid file
 .containerid
+
+# custom
+kong-pongo
+.local
+.pongo
+pongo
