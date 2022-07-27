@@ -19,10 +19,6 @@ Response Transformer Extra includes the following additional configurations: add
 | config.add.if_status [ Optional ]  |  array of string elements | List of response status codes or status code ranges to which the transformation will apply. Empty means all response codes.  | 
 | config.append.if_status [ Optional ]  |  array of string elements | List of response status codes or status code ranges to which the transformation will apply. Empty means all response codes.  | 
 
-
-- config.remove.if_status [optional] Type: array of string elements	
-> List of response status codes or status code ranges to which the transformation will apply. Empty means all response codes.
-
 -----
 
 ## Test with pongo
