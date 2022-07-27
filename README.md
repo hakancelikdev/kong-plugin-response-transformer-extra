@@ -69,3 +69,30 @@ This results in:
 
 [badge-travis-url]: https://travis-ci.org/Kong/kong-plugin/branches
 [badge-travis-image]: https://travis-ci.com/Kong/kong-plugin.svg?branch=master
+
+
+## Test with pongo
+
+```
+pongo shell
+
+kong migrations bootstrap --force
+kong start
+
+
+curl -i -X POST \
+ --url http://localhost:8001/services/ \
+ --data 'name=example-service' \
+ --data 'url=http://konghq.com'
+
+curl -i -X POST \
+ --url http://localhost:8001/services/example-service/routes \
+ --data 'hosts[]=example.com'
+
+curl -X POST http://localhost:8001/services/example-service/plugins/ \
+  --header 'content-type: application/json' \
+  --data '{"name": "response-transformer-extra", "config": {"add": {"headers": ["h1:v2", "h2:v1"], "if_status": ["200", "301"]}}}'
+
+
+curl -I -H "Host: example.com" http://localhost:8000/
+```
