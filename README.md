@@ -5,10 +5,10 @@ Transformations can be restricted to responses with specific status codes using 
 
 ### Extras
 
-- Update [Priortiy: 902](https://github.com/hakancelikdev/kong-plugin-response-transformer-extra/blob/main/kong/plugins/response-transformer-extra/handler.lua#L10) [Default 800 on kong.](https://github.com/Kong/kong/blob/c54a2e99d95fd890c7a30ec072b20d72344bb8fc/kong/plugins/response-transformer/handler.lua#L12)
+#### Update [Priortiy: 902](https://github.com/hakancelikdev/kong-plugin-response-transformer-extra/blob/main/kong/plugins/response-transformer-extra/handler.lua#L10) [Default 800 on kong.](https://github.com/Kong/kong/blob/c54a2e99d95fd890c7a30ec072b20d72344bb8fc/kong/plugins/response-transformer/handler.lua#L12)
 > to make it work before the plugin response-ratelimiting
 > response-ratelimiting's [priorty is 900](https://github.com/Kong/kong/blob/c54a2e99d95fd890c7a30ec072b20d72344bb8fc/kong/plugins/response-ratelimiting/handler.lua#L30)
-- if_status
+#### if_status
 > If the status code given in the conf and the response status code match, the operation will take place.
   - conf.remove.if_status
   - conf.rename.if_status
