@@ -45,6 +45,19 @@ local function is_body_transform_set(conf)
 end
 
 
+local function is_if_status(if_status, actual_status_code)
+  if if_status == nil then
+    return true
+  end
+
+  for _, expected_status in iter(if_status) do
+    if actual_status_code == tonumber(expected_status) then
+      return true
+    end
+  end
+  return false
+end
+
 -- export utility functions
 _M.is_json_body = is_json_body
 _M.is_body_transform_set = is_body_transform_set
@@ -52,20 +65,23 @@ _M.is_body_transform_set = is_body_transform_set
 
 ---
 --   # Example:
---   ngx.headers = header_filter.transform_headers(conf, ngx.headers)
+--   ngx.headers = header_filter.transform_headers(conf, ngx.headers, ngx.status)
 -- We run transformations in following order: remove, rename, replace, add, append.
 -- @param[type=table] conf Plugin configuration.
 -- @param[type=table] ngx_headers Table of headers, that should be `ngx.headers`
+-- @param[type=number] ngx_status number of status code, that should be `ngx.status`
 -- @return table A table containing the new headers.
-function _M.transform_headers(conf, headers)
+function _M.transform_headers(conf, headers, status_code)
   -- remove headers
   for _, header_name in iter(conf.remove.headers) do
+    if is_if_status(conf.remove.if_status, status_code) then
       kong.response.clear_header(header_name)
   end
+end
 
   -- rename headers(s)
   for _, old_name, new_name in iter(conf.rename.headers) do
-    if headers[old_name] ~= nil and new_name then
+    if headers[old_name] ~= nil and new_name and is_if_status(conf.rename.if_status, status_code) then
       local value = headers[old_name]
       kong.response.set_header(new_name, value)
       kong.response.clear_header(old_name)
@@ -74,21 +90,23 @@ function _M.transform_headers(conf, headers)
 
   -- replace headers
   for _, header_name, header_value in iter(conf.replace.headers) do
-    if headers[header_name] ~= nil and header_value then
+    if headers[header_name] ~= nil and header_value and is_if_status(conf.replace.if_status, status_code) then
       kong.response.set_header(header_name, header_value)
     end
   end
 
   -- add headers
   for _, header_name, header_value in iter(conf.add.headers) do
-    if headers[header_name] == nil and header_value then
+    if headers[header_name] == nil and header_value and is_if_status(conf.add.if_status, status_code) then
       kong.response.set_header(header_name, header_value)
     end
   end
 
   -- append headers
   for _, header_name, header_value in iter(conf.append.headers) do
-    kong.response.add_header(header_name, header_value)
+    if is_if_status(conf.append.if_status, status_code) then
+      kong.response.add_header(header_name, header_value)
+    end
   end
 
   -- Removing the content-length header because the body is going to change

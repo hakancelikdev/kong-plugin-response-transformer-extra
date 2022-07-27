@@ -53,7 +53,8 @@ describe("Plugin: response-transformer-extra", function()
     describe("remove", function()
       local conf  = {
         remove    = {
-          headers = {"h1", "h2", "h3"}
+          headers = {"h1", "h2", "h3"},
+          if_status = {200, 201, 202, 203, 204, 205, 206, 207, 208, 226}
         },
         rename   = {
           headers = {}
@@ -69,15 +70,31 @@ describe("Plugin: response-transformer-extra", function()
           headers = {}
         }
       }
-      it("all the headers", function()
+      it("does not any remove headers if the actual status code not set", function()
         local headers = get_headers({ h1 = "value1", h2 = { "value2a", "value2b" } })
         header_transformer.transform_headers(conf, headers)
+        assert.same({ h1 = "value1", h2 = { "value2a", "value2b" }}, headers)
+      end)
+      it("all the headers", function()
+        local headers = get_headers({ h1 = "value1", h2 = { "value2a", "value2b" } })
+        header_transformer.transform_headers(conf, headers, 200)
         assert.same({}, headers)
+      end)
+      it("does not any remove headers if the actual status code does not match", function()
+        local headers = get_headers({ h1 = "value1", h2 = { "value2a", "value2b" } })
+        header_transformer.transform_headers(conf, headers, 599)
+        assert.same({ h1 = "value1", h2 = { "value2a", "value2b" }}, headers)
       end)
       it("sets content-length nil", function()
         local headers = get_headers({ h1 = "value1", h2 = {"value2a", "value2b"}, [CONTENT_LENGTH] = "100", [CONTENT_TYPE] = JSON })
         header_transformer.transform_headers(conf, headers)
         assert.is_nil(headers[CONTENT_LENGTH])
+      end)
+      it("all the headers if if_status not set via conf", function()
+        local headers = get_headers({ h1 = "value1", h2 = { "value2a", "value2b" } })
+        conf.remove.if_status = nil
+        header_transformer.transform_headers(conf, headers, 200)
+        assert.same({}, headers)
       end)
     end)
     describe("rename", function()
@@ -132,7 +149,8 @@ describe("Plugin: response-transformer-extra", function()
           headers = {}
         },
         replace   = {
-          headers = {"h1:v1", "h2:value:2"}  -- payload with colon to verify parsing
+          headers = {"h1:v1", "h2:value:2"},  -- payload with colon to verify parsing
+          if_status = {200, 201, 202, 203, 204, 205, 206, 207, 208, 226}
         },
         add       = {
           json    = {"p1:v1"},
@@ -142,20 +160,36 @@ describe("Plugin: response-transformer-extra", function()
           headers = {}
         }
       }
-      it("header if the header only exists", function()
+      it("does not add a new header if the actual status code not set", function()
         local headers = get_headers({ h1 = "value1", h2 = { "value2a", "value2b" } })
         header_transformer.transform_headers(conf, headers)
+        assert.same({h1 = "value1", h2 = { "value2a", "value2b" }}, headers)
+      end)
+      it("does not add a new header if the actual status code does not match the range", function()
+        local headers = get_headers({ h1 = "value1", h2 = { "value2a", "value2b" } })
+        header_transformer.transform_headers(conf, headers, 500)
+        assert.same({h1 = "value1", h2 = { "value2a", "value2b" }}, headers)
+      end)
+      it("header if the header only exists and status code match", function()
+        local headers = get_headers({ h1 = "value1", h2 = { "value2a", "value2b" } })
+        header_transformer.transform_headers(conf, headers, 200)
         assert.same({h1 = "v1", h2 = "value:2"}, headers)
       end)
       it("does not add a new header if the header does not already exist", function()
         local headers = get_headers({ h2 = { "value2a", "value2b" } })
-        header_transformer.transform_headers(conf, headers)
+        header_transformer.transform_headers(conf, headers, 201)
         assert.same({h2 = "value:2"}, headers)
       end)
       it("sets content-length nil", function()
         local headers = get_headers({ h1 = "value1", h2 = {"value2a", "value2b"}, [CONTENT_LENGTH] = "100", [CONTENT_TYPE] = JSON })
-        header_transformer.transform_headers(conf, headers)
+        header_transformer.transform_headers(conf, headers, 204)
         assert.is_nil(headers[CONTENT_LENGTH])
+      end)
+      it("add a new header if if_status not set via conf", function()
+        local headers = get_headers({ h1 = "value1", h2 = { "value2a", "value2b" } })
+        conf.replace.if_status = nil
+        header_transformer.transform_headers(conf, headers, 201)
+        assert.same({h1 = "v1", h2 = "value:2"}, headers)
       end)
     end)
     describe("add", function()
@@ -171,26 +205,48 @@ describe("Plugin: response-transformer-extra", function()
         },
         add       = {
           json    = {"p1:v1"},
-          headers = {"h2:v2"}
+          headers = {"h2:v2"},
+          if_status = {200, 201, 202, 203, 204, 205, 206, 207, 208, 226}
         },
         append    = {
           headers = {}
         }
       }
-      it("header if the header does not exists", function()
+      it("does not header if actual status code not set", function()
         local headers = get_headers({ h1 = "v1" })
         header_transformer.transform_headers(conf, headers)
+        assert.same({h1 = "v1"}, headers)
+      end)
+      it("does not header if actual status code not in the range", function()
+        local headers = get_headers({ h1 = "v1" })
+        header_transformer.transform_headers(conf, headers, 400)
+        assert.same({h1 = "v1"}, headers)
+      end)
+      it("header if actual status code equal to 206 and the header does not exists", function()
+        local headers = get_headers({ h1 = "v1" })
+        header_transformer.transform_headers(conf, headers, 206)
         assert.same({h1 = "v1", h2 = "v2"}, headers)
       end)
-      it("does not add a new header if the header already exist", function()
+      it("does not a new header if the header already exist", function()
         local headers = get_headers({ h1 = "v1", h2 = "v3" })
-        header_transformer.transform_headers(conf, headers)
+        header_transformer.transform_headers(conf, headers, 202)
+        assert.same({h1 = "v1", h2 = "v3"}, headers)
+      end)
+      it("does not add a new header if the header already exist and status code match", function()
+        local headers = get_headers({ h1 = "v1", h2 = "v3" })
+        header_transformer.transform_headers(conf, headers, 208)
         assert.same({h1 = "v1", h2 = "v3"}, headers)
       end)
       it("sets content-length nil", function()
         local headers = get_headers({ h1 = "v1", [CONTENT_LENGTH] = "100", [CONTENT_TYPE] = JSON })
         header_transformer.transform_headers(conf, headers)
         assert.is_nil(headers[CONTENT_LENGTH])
+      end)
+      it("header if if_status not set via conf", function()
+        local headers = get_headers({ h1 = "v1" })
+        conf.add.if_status = nil
+        header_transformer.transform_headers(conf, headers, 206)
+        assert.same({h1 = "v1", h2 = "v2"}, headers)
       end)
     end)
     describe("append", function()
@@ -209,23 +265,45 @@ describe("Plugin: response-transformer-extra", function()
           headers = {}
         },
         append    = {
-          headers = {"h1:v2"}
+          headers = {"h1:v2"},
+          if_status = {200, 201, 202, 203, 204, 205, 206, 207, 208, 226}
         }
       }
-      it("header if the header does not exists", function()
+      it("does not header if the actual status code not set", function()
         local headers = get_headers({})
         header_transformer.transform_headers(conf, headers)
+        assert.same({}, headers)
+      end)
+      it("header if the header does not exists", function()
+        local headers = get_headers({})
+        header_transformer.transform_headers(conf, headers, 200)
         assert.same({"v2"}, headers["h1"])
       end)
       it("header if the header already exist", function()
         local headers = get_headers({ h1 = "v1" })
-        header_transformer.transform_headers(conf, headers)
+        header_transformer.transform_headers(conf, headers, 201)
         assert.same({h1 = {"v1", "v2"}}, headers)
+      end)
+      it("does not header if the actual status code not match", function()
+        local headers = get_headers({ h1 = "v1" })
+        header_transformer.transform_headers(conf, headers, 500)
+        assert.same({h1 = "v1"}, headers)
+      end)
+      it("does not header if the actual status code not set", function()
+        local headers = get_headers({ h1 = "v1" })
+        header_transformer.transform_headers(conf, headers)
+        assert.same({h1 = "v1"}, headers)
       end)
       it("sets content-length nil", function()
         local headers = get_headers({ h1 = "v1", [CONTENT_LENGTH] = "100", [CONTENT_TYPE] = JSON })
         header_transformer.transform_headers(conf, headers)
         assert.is_nil(headers[CONTENT_LENGTH])
+      end)
+      it("header if if_status not set via conf", function()
+        local headers = get_headers({})
+        conf.append.if_status = nil
+        header_transformer.transform_headers(conf, headers)
+        assert.same({"v2"}, headers["h1"])
       end)
     end)
     describe("performing remove, replace, add, append together", function()

@@ -21,6 +21,13 @@ local function validate_colon_headers(pair)
   return validate_headers(pair, true)
 end
 
+local colon_if_status_array = {
+  type = "array",
+  default = {},
+  required = true,
+  elements = { type = "string" }
+}
+
 local string_array = {
   type = "array",
   default = {},
@@ -42,6 +49,7 @@ local string_record = {
   fields = {
     { json = string_array },
     { headers = string_array },
+    { if_status =  colon_if_status_array},
   },
 }
 
@@ -60,6 +68,7 @@ local colon_string_record = {
       }
     } },
     { headers = colon_string_array },
+    { if_status =  colon_if_status_array},
   },
 }
 
@@ -74,7 +83,8 @@ local colon_headers_array = {
 local colon_rename_strings_array_record = {
   type = "record",
   fields = {
-    { headers = colon_headers_array }
+    { headers = colon_headers_array },
+    { if_status =  colon_if_status_array},
   },
 }
 

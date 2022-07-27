@@ -7,13 +7,13 @@ local kong = kong
 
 
 local ResponseTransformerExtraHandler = {
-  PRIORITY = 902,  -- NOTE: default 800,  to make it work before the plugin response-ratelimiting
+  PRIORITY = 902,  -- NOTE: default 800,  to make it work before the plugin response-ratelimiting: PRIORITY 900
   VERSION = "2.8.1",
 }
 
 
 function ResponseTransformerExtraHandler:header_filter(conf)
-  header_transformer.transform_headers(conf, kong.response.get_headers())
+  header_transformer.transform_headers(conf, kong.response.get_headers(), kong.response.get_status())
 end
 
 
