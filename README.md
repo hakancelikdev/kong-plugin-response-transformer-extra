@@ -9,13 +9,7 @@ Transformations can be restricted to responses with specific status codes using 
 > to make it work before the plugin response-ratelimiting
 > response-ratelimiting's [priorty is 900](https://github.com/Kong/kong/blob/c54a2e99d95fd890c7a30ec072b20d72344bb8fc/kong/plugins/response-ratelimiting/handler.lua#L30)
 #### if_status
-> If the status code given in the conf and the response status code match, the operation will take place.
-  - conf.remove.if_status
-  - conf.rename.if_status
-  - conf.replace.if_status
-  - conf.add.if_status
-  - conf.remove.if_status
-  - conf.append.if_status
+Response Transformer Extra includes the following additional configurations: add.if_status, append.if_status, remove.if_status, replace.if_status and rename.if_status.
 
 
 ## Test with pongo
