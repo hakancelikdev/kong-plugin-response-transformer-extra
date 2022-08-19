@@ -2,7 +2,6 @@ Kong plugin response transformer extra
 ====================
 
 Transformations can be restricted to responses with specific status codes using various config.*.if_status configuration parameters.
-
 ## Extras
 
 ### Priortiy
@@ -26,26 +25,37 @@ NOTE: range feature is not implemented yet
 
 ## Test with pongo
 
-```
-pongo shell
+```bash
+$ pongo run
+$ pongo shell
+$ kong migrations bootstrap --force
+$ kong start
 
-kong migrations bootstrap --force
-kong start
-
-
-curl -i -X POST \
+$ curl -i -X POST \
  --url http://localhost:8001/services/ \
  --data 'name=example-service' \
  --data 'url=http://konghq.com'
 
-curl -i -X POST \
+$ curl -i -X POST \
  --url http://localhost:8001/services/example-service/routes \
  --data 'hosts[]=example.com'
 
-curl -X POST http://localhost:8001/services/example-service/plugins/ \
+$ curl -X POST http://localhost:8001/services/example-service/plugins/ \
   --header 'content-type: application/json' \
   --data '{"name": "response-transformer-extra", "config": {"add": {"headers": ["h1:v2", "h2:v1"], "if_status": ["200", "301"]}}}'
 
-
-curl -I -H "Host: example.com" http://localhost:8000/
+$ curl -I -H "Host: example.com" http://localhost:8000/
 ```
+
+### Run tests with Pongo
+
+```bash
+$ pongo run
+```
+
+specific path, tests
+
+```bash
+$ pongo run -- ./spec/response-transformer-extra/01-header_transformer_spec.lua
+```
+
